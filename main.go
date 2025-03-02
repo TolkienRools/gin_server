@@ -60,7 +60,7 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 	server := WeatherServer{}
 
-	r.GET("/weather", func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 	r.GET("/api/location/", server.getWeatherHandler)
