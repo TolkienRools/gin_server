@@ -63,7 +63,10 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
-	r.GET("/api/location/", server.getWeatherHandler)
 
+	{
+		api := r.Group("/api")
+		api.GET("location/", server.getWeatherHandler)
+	}
 	r.Run()
 }
