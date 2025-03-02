@@ -56,7 +56,6 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.Default())
-	r.Use(gin.Recovery())
 	r.LoadHTMLGlob("templates/*")
 	server := WeatherServer{}
 
