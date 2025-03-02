@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,10 @@ func (wh *WeatherServer) getWeatherHandler(c *gin.Context) {
 }
 
 func main() {
+	gin.DisableConsoleColor()
+
+	f, _ := os.Create("log.txt")
+	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
 	r := gin.Default()
 
 	r.Use(cors.Default())
