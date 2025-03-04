@@ -53,6 +53,17 @@ func (wh *WeatherServer) getWeatherHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (wh *WeatherServer) postUploadFileHandler(c *gin.Context) {
+	form, _ := c.MultipartForm()
+	files := form.File["upload[]"]
+
+	for _, file := range files {
+		save_path := fmt.Sprintf("./uploads/%s", file.Filename)
+		c.SaveUploadedFile(file, save_path)
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "files uploaded"})
+}
+
 func main() {
 	gin.DisableConsoleColor()
 
@@ -68,9 +79,14 @@ func main() {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
+	r.GET("/upload", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "file_upload.html", nil)
+	})
+
 	{
 		api := r.Group("/api")
 		api.GET("location/", server.getWeatherHandler)
+		api.POST("upload/", server.postUploadFileHandler)
 	}
 	r.Run()
 }

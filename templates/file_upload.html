@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка файлов</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin-top: 60px;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            z-index: 1001; /* Выше карты и информационного окна */
+        }
+
+        .navbar-nav .nav-link {
+            cursor: pointer;
+        }
+
+        #drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 50px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #aaa;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        #drop-area.highlight {
+            border-color: #007bff;
+            color: #007bff;
+        }
+
+        #file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #upload-button {
+            margin-top: 20px;
+            display: block;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Меню-бар -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a href="/" class="nav-link" id="map-tab">Карта</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/upload" class="nav-link active" id="upload-tab">Загрузка файлов</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Drag&Drop область -->
+    <div id="drop-area">
+        Перетащите файлы сюда или нажмите для выбора файлов
+        <form id="upload-form">
+            <input type="file" id="file-input" multiple hidden>
+        </form>
+        <div id="preview-list"></div>
+    </div>
+
+    <!-- Кнопка отправки -->
+    <button id="upload-button" class="btn btn-primary" disabled>Отправить файлы</button>
+
+    <script>
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const previewList = document.getElementById('preview-list');
+        const uploadButton = document.getElementById('upload-button');
+
+        let filesToUpload = []; // Массив для хранения файлов
+
+        // Открытие диалога выбора файлов при клике на область
+        dropArea.addEventListener('click', () => fileInput.click());
+
+        // Обработка drag&drop событий
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const droppedFiles = dt.files;
+            handleFiles(droppedFiles);
+        }
+
+        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+        // Обработка файлов
+        function handleFiles(files) {
+            [...files].forEach(file => {
+                if (!filesToUpload.some(f => f.name === file.name)) {
+                    filesToUpload.push(file); // Добавляем файл в массив
+                    addFileToPreview(file); // Отображаем файл в списке
+                }
+            });
+
+            // Активируем кнопку отправки, если есть файлы
+            uploadButton.disabled = filesToUpload.length === 0;
+        }
+
+        // Отображение файла в drag&drop области
+        function addFileToPreview(file) {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `
+                <span>${file.name}</span>
+                <button class="btn btn-sm btn-danger remove-file" data-name="${file.name}">Удалить</button>
+            `;
+            previewList.appendChild(item);
+
+            // Удаление файла из списка
+            const removeButton = item.querySelector('.remove-file');
+            removeButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Останавливаем всплытие события
+
+                filesToUpload = filesToUpload.filter(f => f.name !== file.name);
+                item.remove();
+
+                // Деактивируем кнопку отправки, если файлов больше нет
+                uploadButton.disabled = filesToUpload.length === 0;
+            });
+        }
+
+        // Отправка файлов на сервер
+        uploadButton.addEventListener('click', () => {
+            if (filesToUpload.length === 0) return;
+
+            const formData = new FormData();
+            filesToUpload.forEach(file => formData.append('upload[]', file));
+
+            fetch('/api/upload/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Файлы успешно загружены!');
+                filesToUpload = []; // Очищаем массив файлов
+                previewList.innerHTML = ''; // Очищаем список файлов
+                uploadButton.disabled = true; // Деактивируем кнопку
+            })
+            .catch(error => console.error('Ошибка:', error));
+        });
+    </script>
+</body>
+</html>
