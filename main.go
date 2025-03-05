@@ -6,9 +6,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-contrib/cors"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type WeatherServer struct{}
@@ -39,8 +42,6 @@ func (wh *WeatherServer) getWeatherData(lat string, lon string) interface{} {
 		panic(err)
 	}
 
-	fmt.Println(string(body))
-
 	return json_result
 }
 
@@ -65,11 +66,41 @@ func (wh *WeatherServer) postUploadFileHandler(c *gin.Context) {
 }
 
 func main() {
-	gin.DisableConsoleColor()
+	debugMode := strings.ToLower(os.Getenv("DEBUG")) == "true"
 
-	f, _ := os.Create("log.txt")
-	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
-	r := gin.Default()
+	if debugMode {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// 3. Создаем логгер в зависимости от режима
+	var logger *zap.Logger
+	var err error
+
+	if debugMode {
+		// Режим разработки с дебаг-логированием
+		config := zap.NewDevelopmentConfig()
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		logger, err = config.Build()
+	} else {
+		// Production-режим с ограничением уровня INFO
+		config := zap.NewProductionConfig()
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+		logger, err = config.Build()
+	}
+
+	if err != nil {
+		panic(err)
+	}
+	defer logger.Sync()
+
+	// 4. Инициализация Gin
+	r := gin.New()
+
+	// 5. Подключаем middleware с правильным уровнем логирования
+	r.Use(ginzap.Ginzap(logger, "2006-01-02 15:04:05", true))
+	r.Use(ginzap.RecoveryWithZap(logger, true))
 
 	r.Use(cors.Default())
 	r.LoadHTMLGlob("templates/*")
