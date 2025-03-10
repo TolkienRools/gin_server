@@ -1,6 +1,7 @@
 services:
   web:
-    build: .
+    build:
+      dockerfile: ../deployments/Dockerfile
     ports:
       - 8080:8080
     container_name: go_weather_server

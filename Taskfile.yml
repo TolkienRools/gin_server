@@ -1,0 +1,31 @@
+# https://taskfile.dev
+
+version: '3'
+
+env:
+  CONFIG_PATH: ./config/local.yaml
+
+vars:
+  GREETING: Hello, World!
+
+tasks:
+  default:
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  local-run:
+    cmds:
+      - go run ./cmd/weather_app/main.go
+
+  local-build:
+    cmds:
+      - go build ./cmd/weather_app/main.go
+
+  container-build:
+    cmds:
+      - docker compose -f ./deployments/docker-compose.yaml build
+
+  container-run:
+    cmds:
+      - docker compose -f ./deployments/docker-compose.yaml up -d

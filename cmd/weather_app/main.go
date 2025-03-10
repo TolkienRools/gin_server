@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/TolkienRools/gin_server/internal/config"
+	weather "github.com/TolkienRools/gin_server/internal/handlers"
 	"github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
@@ -16,43 +16,7 @@ import (
 
 type WeatherServer struct{}
 
-const API_KEY = "6ef704c680454e1eb7691220242208"
-
-// Добавить передачу параметров
-func (wh *WeatherServer) getWeatherData(lat string, lon string) interface{} {
-
-	url := fmt.Sprintf("http://api.weatherapi.com/v1/current.json?key=%s&q=%s,%s", API_KEY, lat, lon)
-	resp, err := http.Get(url)
-
-	if err != nil {
-		// Лучше использовать логирование из Gin
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		panic(err)
-	}
-
-	var json_result map[string]interface{}
-
-	if err := json.Unmarshal(body, &json_result); err != nil {
-		panic(err)
-	}
-
-	return json_result
-}
-
-func (wh *WeatherServer) getWeatherHandler(c *gin.Context) {
-	latitude := c.Query("lat")
-	longitude := c.Query("lon")
-
-	result := wh.getWeatherData(latitude, longitude)
-
-	c.JSON(http.StatusOK, result)
-}
+// const API_KEY = "6ef704c680454e1eb7691220242208"
 
 func (wh *WeatherServer) postUploadFileHandler(c *gin.Context) {
 	form, _ := c.MultipartForm()
@@ -66,6 +30,10 @@ func (wh *WeatherServer) postUploadFileHandler(c *gin.Context) {
 }
 
 func main() {
+	cfg := config.MustLoad()
+
+	fmt.Println(cfg)
+
 	debugMode := strings.ToLower(os.Getenv("DEBUG")) == "true"
 
 	if debugMode {
@@ -103,7 +71,7 @@ func main() {
 	r.Use(ginzap.RecoveryWithZap(logger, true))
 
 	r.Use(cors.Default())
-	r.LoadHTMLGlob("templates/*")
+	r.LoadHTMLGlob("web/templates/*")
 	server := WeatherServer{}
 
 	r.GET("/", func(c *gin.Context) {
@@ -116,7 +84,7 @@ func main() {
 
 	{
 		api := r.Group("/api")
-		api.GET("location/", server.getWeatherHandler)
+		api.GET("location/", weather.GetWeatherHandler)
 		api.POST("upload/", server.postUploadFileHandler)
 	}
 	r.Run()
