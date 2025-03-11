@@ -16,7 +16,7 @@ func GetWeatherHandler(c *gin.Context) {
 		APIkey: "6ef704c680454e1eb7691220242208",
 	}
 
-	result := weather_api.GetWeatherData(latitude, longitude)
+	result := weather_api.GetWeatherData(latitude, longitude, 3)
 
 	c.JSON(http.StatusOK, result)
 }

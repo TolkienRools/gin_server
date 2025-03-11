@@ -87,5 +87,5 @@ func main() {
 		api.GET("location/", weather.GetWeatherHandler)
 		api.POST("upload/", server.postUploadFileHandler)
 	}
-	r.Run()
+	r.Run(cfg.HTTPServer.Address)
 }
